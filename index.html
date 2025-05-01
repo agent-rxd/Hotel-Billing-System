@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Restaurant Billing System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <style>
+        body { background: #f8f9fa; }
+        .container { margin-top: 30px; }
+        .bill-table th, .bill-table td { vertical-align: middle; }
+        #deliveryDetailsDiv input { margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2 class="mb-4">Restaurant Billing System</h2>
+    <form id="orderForm" class="mb-4" onsubmit="return false;">
+        <div class="row mb-2">
+            <div class="col-md-3">
+                <input type="text" id="customerName" class="form-control" placeholder="Customer Name" required>
+            </div>
+            <div class="col-md-3">
+                <input type="text" id="phone" class="form-control" placeholder="Mobile Number" required>
+            </div>
+            <div class="col-md-3">
+                <select id="orderType" class="form-select" onchange="handleOrderType()">
+                    <option value="Dine-In">Dine-In</option>
+                    <option value="Home Delivery">Home Delivery</option>
+                </select>
+            </div>
+            <div class="col-md-3" id="tableNumberDiv">
+                <input type="number" id="tableNumber" class="form-control" placeholder="Table Number" min="1">
+            </div>
+            <div class="col-md-3" id="deliveryDetailsDiv" style="display:none;">
+                <input type="text" id="address" class="form-control" placeholder="Delivery Address">
+            </div>
+        </div>
+        <div class="row mb-2">
+            <div class="col-md-4">
+                <select id="menuSelect" class="form-select"></select>
+            </div>
+            <div class="col-md-2">
+                <input type="number" id="quantity" class="form-control" value="1" min="1">
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-primary" onclick="addItem()">Add Item</button>
+            </div>
+        </div>
+    </form>
+    <table class="table table-bordered bill-table" id="billTable">
+        <thead>
+            <tr>
+                <th>Item</th><th>Quantity</th><th>Price</th><th>Subtotal</th><th>Remove</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <div class="mb-3">
+        <strong>Total: <span id="totalAmount">Rs 0.00</span></strong>
+    </div>
+    <button class="btn btn-success" onclick="submitOrder()">Generate Bill</button>
+    <div id="orderMsg" class="mt-2"></div>
+    <hr>
+    <h4>Order History</h4>
+    <table class="table table-striped" id="ordersTable">
+        <thead>
+            <tr>
+                <th>Order ID</th>
+                <th>Customer Name</th>
+                <th>Phone</th>
+                <th>Order Type</th>
+                <th>Table No.</th>
+                <th>Date/Time</th>
+                <th>Total</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <div id="orderDetails"></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let menu = [];
+let billItems = [];
+
+function fetchMenu() {
+    fetch('get_menu.php')
+    .then(res => res.json())
+    .then(data => {
+        menu = data;
+        let menuSelect = document.getElementById('menuSelect');
+        menuSelect.innerHTML = '';
+        menu.forEach(item => {
+            let opt = document.createElement('option');
+            opt.value = item.id;
+            opt.textContent = `${item.name} - Rs ${item.price}`;
+            menuSelect.appendChild(opt);
+        });
+    });
+}
+
+function addItem() {
+    let menuSelect = document.getElementById('menuSelect');
+    let selectedId = parseInt(menuSelect.value);
+    let selectedItem = menu.find(m => parseInt(m.id) === selectedId);
+    let quantity = parseInt(document.getElementById('quantity').value);
+
+    if (!selectedItem || quantity < 1) {
+        alert("Please select a valid item and quantity.");
+        return;
+    }
+
+    let existing = billItems.find(item => item.id === selectedId);
+    if (existing) {
+        existing.quantity += quantity;
+    } else {
+        billItems.push({
+            id: selectedId,
+            name: selectedItem.name,
+            price: parseFloat(selectedItem.price),
+            quantity: quantity
+        });
+    }
+    renderBill();
+}
+
+function renderBill() {
+    let tbody = document.querySelector('#billTable tbody');
+    tbody.innerHTML = '';
+    let total = 0;
+    billItems.forEach((item, idx) => {
+        let subtotal = item.price * item.quantity;
+        total += subtotal;
+        let tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${item.name}</td>
+            <td>${item.quantity}</td>
+            <td>Rs ${item.price.toFixed(2)}</td>
+            <td>Rs ${subtotal.toFixed(2)}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="removeItem(${idx})">Remove</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+    document.getElementById('totalAmount').textContent = 'Rs ' + total.toFixed(2);
+}
+
+function removeItem(idx) {
+    billItems.splice(idx, 1);
+    renderBill();
+}
+
+function handleOrderType() {
+    let orderType = document.getElementById('orderType').value;
+    if (orderType === 'Dine-In') {
+        document.getElementById('tableNumberDiv').style.display = '';
+        document.getElementById('deliveryDetailsDiv').style.display = 'none';
+    } else {
+        document.getElementById('tableNumberDiv').style.display = 'none';
+        document.getElementById('deliveryDetailsDiv').style.display = '';
+    }
+}
+
+function submitOrder() {
+    let customerName = document.getElementById('customerName').value.trim();
+    let phone = document.getElementById('phone').value.trim();
+    let orderType = document.getElementById('orderType').value;
+    let tableNumber = document.getElementById('tableNumber').value;
+    let address = document.getElementById('address').value.trim();
+
+    if (!customerName || billItems.length === 0) {
+        alert('Please enter customer name and add at least one item.');
+        return;
+    }
+    if (!phone) {
+        alert('Please enter mobile number.');
+        return;
+    }
+    if (orderType === 'Dine-In' && (!tableNumber || tableNumber < 1)) {
+        alert('Please enter a valid table number.');
+        return;
+    }
+    if (orderType === 'Home Delivery' && !address) {
+        alert('Please enter address for home delivery.');
+        return;
+    }
+
+    fetch('place_order.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            customer_name: customerName,
+            phone: phone,
+            items: billItems,
+            order_type: orderType,
+            table_number: orderType === 'Dine-In' ? tableNumber : null,
+            address: orderType === 'Home Delivery' ? address : null
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('orderMsg').textContent = data.message;
+        billItems = [];
+        renderBill();
+        fetchOrders();
+        // Reset form fields
+        document.getElementById('customerName').value = '';
+        document.getElementById('phone').value = '';
+        document.getElementById('tableNumber').value = '';
+        document.getElementById('address').value = '';
+    });
+}
+
+function fetchOrders() {
+    fetch('get_orders.php')
+    .then(res => res.json())
+    .then(orders => {
+        let tbody = document.querySelector('#ordersTable tbody');
+        tbody.innerHTML = '';
+        orders.forEach(order => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${order.id}</td>
+                <td>${order.customer_name}</td>
+                <td>${order.phone || ''}</td>
+                <td>${order.order_type || ''}</td>
+                <td>${order.table_number || ''}</td>
+                <td>${order.order_time}</td>
+                <td>Rs ${parseFloat(order.total).toFixed(2)}</td>
+                <td><button class="btn btn-info btn-sm" onclick="showOrderDetails(${order.id})">View</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    });
+}
+
+function showOrderDetails(orderId) {
+    fetch(`get_order_details.php?order_id=${orderId}`)
+    .then(res => res.json())
+    .then(items => {
+        let html = `<h5>Order #${orderId} Details</h5><ul>`;
+        items.forEach(item => {
+            html += `<li>${item.name} - ${item.quantity} x Rs ${parseFloat(item.price).toFixed(2)}</li>`;
+        });
+        html += '</ul>';
+        document.getElementById('orderDetails').innerHTML = html;
+    });
+}
+
+window.onload = function() {
+    fetchMenu();
+    fetchOrders();
+    handleOrderType();
+}
+</script>
+</body>
+</html>
