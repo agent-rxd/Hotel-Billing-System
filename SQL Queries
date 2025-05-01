@@ -1,0 +1,99 @@
+CREATE DATABASE restaurant_db;
+USE restaurant_db;
+
+CREATE TABLE menu_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100),
+    price DECIMAL(6,2)
+);
+
+CREATE TABLE customers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100),
+    phone VARCHAR(20)
+);
+
+CREATE TABLE orders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT,
+    order_time DATETIME,
+    total DECIMAL(8,2),
+    order_type ENUM('Dine-In', 'Home Delivery') NOT NULL DEFAULT 'Dine-In',
+    table_number INT NULL,
+    FOREIGN KEY (customer_id) REFERENCES customers(id)
+);
+
+CREATE TABLE order_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT,
+    menu_item_id INT,
+    quantity INT,
+    price DECIMAL(6,2),
+    FOREIGN KEY (order_id) REFERENCES orders(id),
+    FOREIGN KEY (menu_item_id) REFERENCES menu_items(id)
+);
+
+CREATE TABLE delivery_details (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT,
+    address VARCHAR(255),
+    FOREIGN KEY (order_id) REFERENCES orders(id)
+);
+
+
+
+
+INSERT INTO menu_items (name, price) VALUES
+('Paneer Butter Masala', 180.00),
+('Chicken Biryani', 220.00),
+('Masala Dosa', 70.00),
+('Butter Naan', 30.00),
+('Gulab Jamun', 50.00),
+('Lassi', 40.00),
+('Samosa', 20.00),
+('Chole Bhature', 90.00),
+('Mango Lassi', 50.00),
+('Filter Coffee', 25.00),
+-- Add more items up to 100
+('Tandoori Chicken', 250.00),
+('Veg Pulao', 120.00),
+('Rasgulla', 40.00),
+('Aloo Paratha', 60.00),
+('Chicken 65', 180.00),
+('Dal Makhani', 140.00),
+('Idli Sambar', 40.00),
+('Pav Bhaji', 80.00),
+('Mutton Curry', 260.00),
+('Fish Fry', 200.00),
+('Paneer Tikka', 150.00),
+('Veg Manchurian', 110.00),
+('Egg Curry', 100.00),
+('Jeera Rice', 80.00),
+('Curd Rice', 60.00),
+('Thums Up', 30.00),
+('Sprite', 30.00),
+('Pepsi', 30.00),
+('Limca', 30.00),
+('Frooti', 25.00),
+('Appy Fizz', 35.00),
+('Rooh Afza', 20.00),
+('Badam Milk', 40.00),
+('Tea', 15.00),
+('Green Tea', 20.00),
+('Black Coffee', 20.00),
+('Cold Coffee', 60.00),
+('Fruit Salad', 60.00),
+('Ice Cream', 50.00),
+('Chai', 15.00),
+('Sweet Lassi', 40.00),
+('Salt Lassi', 40.00),
+('Mojito', 60.00),
+('Virgin Pina Colada', 80.00),
+('Water Bottle', 20.00),
+('Butter Milk', 20.00),
+('Soup', 60.00),
+('Veg Soup', 50.00),
+('Chicken Soup', 70.00),
+('Tomato Soup', 50.00),
+('Sweet Corn Soup', 60.00);
+-- Continue to 100 items
